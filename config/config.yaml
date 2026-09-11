@@ -1,0 +1,31 @@
+# Global Project Configuration
+
+# 1. AI Neural Network / Model Configuration
+model:
+  name: "sentiment_classifier_mlp"
+  vocab_size: 5000
+  embedding_dim: 64
+  hidden_dim: 32
+  num_classes: 3  # Negative (0), Neutral (1), Positive (2)
+  dropout: 0.2
+
+# 2. Training Hyperparameters
+training:
+  batch_size: 8
+  learning_rate: 0.005
+  epochs: 25
+  model_save_dir: "models/saved_weights"
+  model_save_name: "sentiment_model.pt"
+  vocab_save_name: "vocab.json"
+
+# 3. Data Settings
+data:
+  raw_data_dir: "data/raw"
+  processed_data_dir: "data/processed"
+  train_split: 0.8
+
+# 4. Agentic AI Settings
+agent:
+  name: "Genesis-ReAct-Agent"
+  max_iterations: 6
+  verbose: true
