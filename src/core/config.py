@@ -4,6 +4,12 @@ from typing import Optional
 import yaml
 from pydantic import BaseModel, Field
 
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
 
 class ModelConfig(BaseModel):
     name: str = "sentiment_classifier_mlp"

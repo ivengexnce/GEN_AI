@@ -70,21 +70,50 @@ def run_interactive(config):
             user_input = input("AI-Workbench> ").strip()
             if not user_input:
                 continue
-            if user_input.lower() in ["exit", "quit", "q"]:
+            lower_input = user_input.lower()
+
+            if lower_input in ["exit", "quit", "q", "5"]:
                 print("Exiting. Happy AI engineering!")
                 break
-            elif user_input.lower() == "train":
+            elif lower_input in ["train", "1"]:
                 run_training(config)
-            elif user_input.lower().startswith("predict "):
-                text = user_input[8:].strip()
-                run_prediction(text, config)
-            elif user_input.lower().startswith("agent "):
-                goal = user_input[6:].strip()
-                agent.run(goal)
-            elif user_input.lower() == "tools":
+            elif lower_input in ["tools", "4"]:
                 print("\nRegistered Tools:")
                 print(agent.tools.format_tool_descriptions())
                 print()
+            elif lower_input in ["calculator", "calc"]:
+                expr = input("Enter expression to calculate: ").strip()
+                if expr:
+                    res = agent.tools.get("calculator").execute(expr)
+                    print(f"Result: {res}\n")
+            elif lower_input in ["time", "datetime", "clock"]:
+                res = agent.tools.get("datetime").execute("")
+                print(f"Current Date/Time: {res}\n")
+            elif lower_input == "help":
+                print("\nCommands:")
+                print("  1. 'train'               - Train the PyTorch model")
+                print("  2. 'predict <text>'      - Predict sentiment using trained model")
+                print("  3. 'agent <goal>'        - Run autonomous agent on a goal")
+                print("  4. 'tools'               - List registered agent tools")
+                print("  5. 'exit' or 'quit'      - Exit interactive mode\n")
+            elif lower_input == "predict" or lower_input == "2":
+                text = input("Enter text to predict: ").strip()
+                if text:
+                    run_prediction(text, config)
+            elif lower_input.startswith("predict ") or lower_input.startswith("2 "):
+                prefix_len = 8 if lower_input.startswith("predict ") else 2
+                text = user_input[prefix_len:].strip()
+                if text:
+                    run_prediction(text, config)
+            elif lower_input == "agent" or lower_input == "3":
+                goal = input("Enter goal for agent: ").strip()
+                if goal:
+                    agent.run(goal)
+            elif lower_input.startswith("agent ") or lower_input.startswith("3 "):
+                prefix_len = 6 if lower_input.startswith("agent ") else 2
+                goal = user_input[prefix_len:].strip()
+                if goal:
+                    agent.run(goal)
             else:
                 # Default to running as agent goal
                 print(f"Executing as agent goal: '{user_input}'")

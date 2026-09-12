@@ -1,6 +1,7 @@
 """Tool definitions and registry for Agentic AI execution."""
 import datetime
 import math
+import re
 from typing import Any, Callable, Dict, List, Optional
 from pydantic import BaseModel, Field
 
@@ -45,14 +46,26 @@ class ToolRegistry:
 
 def calculate(expression: str) -> str:
     """Evaluate safe mathematical expressions."""
-    # Clean expression
-    allowed_chars = "0123456789+-*/(). %^"
-    cleaned = expression.replace("^", "**")
-    if any(c not in allowed_chars for c in cleaned):
+    cleaned = expression.replace("^", "**").strip()
+    # Check for forbidden keywords that could breach safety
+    if any(forbidden in cleaned.lower() for forbidden in ["__", "import", "eval", "exec", "open", "os", "sys"]):
+        return "Error: Expression contains unsupported operations."
+
+    allowed_pattern = r"^[\d\.\s\+\-\*\/\(\)\,\%\*\*\w]+$"
+    if not re.match(allowed_pattern, cleaned):
         return "Error: Expression contains unsupported characters. Use numbers and standard math operators."
+
     try:
-        # Safe math evaluation using math namespace
-        safe_dict = {"__builtins__": None, "math": math}
+        safe_dict = {
+            "__builtins__": {},
+            "math": math,
+            "sum": sum,
+            "range": range,
+            "min": min,
+            "max": max,
+            "abs": abs,
+            "round": round,
+        }
         result = eval(cleaned, safe_dict)
         return str(result)
     except Exception as e:

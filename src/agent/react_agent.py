@@ -7,6 +7,16 @@ from src.agent.memory import AgentMemory, AgentStep
 from src.agent.tools import ToolRegistry, get_default_tools
 
 
+import sys
+
+# Ensure UTF-8 output on Windows consoles
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+
+
 class ReActAgent:
     """
     Autonomous AI Agent implementing the ReAct framework:
@@ -26,7 +36,10 @@ class ReActAgent:
 
     def log(self, message: str) -> None:
         if self.verbose:
-            print(message)
+            try:
+                print(message)
+            except UnicodeEncodeError:
+                print(message.encode("ascii", errors="replace").decode("ascii"))
 
     def run(self, goal: str) -> str:
         """Run the autonomous reasoning and action loop to achieve the given goal."""
@@ -45,16 +58,16 @@ class ReActAgent:
             thought, action, action_input, is_finished = self._plan_step(goal, self.memory)
 
             step = AgentStep(thought=thought, action=action, action_input=action_input)
-            self.log(f"[Thought] {thought}")
+            self.log(f"🧠 Thought: {thought}")
 
             if is_finished:
                 self.memory.final_answer = thought
                 self.memory.add_step(step)
-                self.log(f"\n[Final Answer]\n{thought}\n")
+                self.log(f"\n✨ Final Answer:\n{thought}\n")
                 return thought
 
-            self.log(f"[Action] {action}")
-            self.log(f"[Action Input] {action_input}")
+            self.log(f"⚡ Action: {action}")
+            self.log(f"📥 Action Input: {action_input}")
 
             # Step 2: Act / Execute Tool
             tool = self.tools.get(action) if action else None
@@ -65,7 +78,7 @@ class ReActAgent:
 
             step.observation = observation
             self.memory.add_step(step)
-            self.log(f"[Observation] {observation}\n")
+            self.log(f"👁️  Observation: {observation}\n")
 
         fallback = (
             f"Agent reached maximum limit of {self.max_iterations} iterations without concluding. "
@@ -108,10 +121,91 @@ class ReActAgent:
         executed_actions = [s.action.lower() for s in memory.steps if s.action]
         last_step = memory.steps[-1] if memory.steps else None
 
-        # Check for Math/Calculation needs
-        math_match = re.search(r"([\d\.\s\+\-\*\/\(\)\^]{3,})", goal)
-        has_math = bool(math_match and any(op in goal for op in ["+", "-", "*", "/", "^", "calculate", "sum", "multiply"]))
+        # Normalize word-based numbers to digits (e.g. 'twenty' -> '20')
+        word_to_num = {
+            "zero": "0", "one": "1", "two": "2", "three": "3", "four": "4",
+            "five": "5", "six": "6", "seven": "7", "eight": "8", "nine": "9",
+            "ten": "10", "eleven": "11", "twelve": "12", "thirteen": "13",
+            "fourteen": "14", "fifteen": "15", "sixteen": "16", "seventeen": "17",
+            "eighteen": "18", "nineteen": "19", "twenty": "20", "thirty": "30",
+            "forty": "40", "fifty": "50", "hundred": "100",
+        }
+        normalized_goal = goal
+        for word, num in word_to_num.items():
+            normalized_goal = re.sub(rf"\b{word}\b", num, normalized_goal, flags=re.IGNORECASE)
+
+        # Check for user introductions: "my name is ..."
+        name_match = re.search(r"my name is\s+([a-zA-Z\s]+)", goal, re.IGNORECASE)
+        if name_match and not memory.steps:
+            user_name = name_match.group(1).strip().title()
+            return (
+                f"Nice to meet you, {user_name}! I am Genesis-ReAct-Agent. I can help you train models, analyze sentiment, compute calculations, or answer AI questions. What would you like to do today?",
+                None,
+                None,
+                True,
+            )
+
+        # Check for loop / control instructions
+        if "keep running until" in goal.lower() and not memory.steps:
+            return (
+                "I process goals in autonomous ReAct cycles and conclude when the goal is achieved. "
+                "In interactive mode, the workbench keeps running and is ready for your next command.",
+                None,
+                None,
+                True,
+            )
+
+        # Check for special math pattern: "sum of first N numbers" or "sum and product"
+        sum_prod_match = re.search(
+            r"sum\s+and\s+product\s+of\s+(?:the\s+)?first\s+(\d+)\s*(whole|natural)?\s*numbers",
+            normalized_goal,
+            re.IGNORECASE,
+        )
+        sum_match = re.search(
+            r"sum\s+of\s+(?:the\s+)?first\s+(\d+)\s*(whole|natural)?\s*numbers",
+            normalized_goal,
+            re.IGNORECASE,
+        )
+
         math_done = "calculator" in executed_actions
+
+        if sum_prod_match and not math_done:
+            n = int(sum_prod_match.group(1))
+            num_type = (sum_prod_match.group(2) or "whole").lower()
+            if num_type == "whole":
+                # Whole numbers start at 0 (0 to n-1)
+                sum_val = sum(range(n))
+                prod_val = 0
+                return (
+                    f"Calculated for first {n} whole numbers (0 to {n-1}): "
+                    f"Sum = sum(range({n})) = {sum_val}. Product = 0 (since whole numbers include 0, anything times 0 is 0).",
+                    None,
+                    None,
+                    True,
+                )
+            else:
+                sum_val = sum(range(1, n + 1))
+                return (
+                    f"The user requested sum and product. I will use the Calculator tool to compute the sum.",
+                    "Calculator",
+                    f"sum(range(1, {n + 1}))",
+                    False,
+                )
+
+        if sum_match and not math_done:
+            n = int(sum_match.group(1))
+            num_type = (sum_match.group(2) or "whole").lower()
+            expr = f"sum(range({n}))" if num_type == "whole" else f"sum(range(1, {n + 1}))"
+            return (
+                f"The user requested the sum of the first {n} {num_type} numbers. I will use the Calculator to evaluate '{expr}'.",
+                "Calculator",
+                expr,
+                False,
+            )
+
+        # Check for Math/Calculation needs
+        math_match = re.search(r"([\d\.\s\+\-\*\/\(\)\^\,]{3,})", normalized_goal)
+        has_math = bool(math_match and any(op in normalized_goal.lower() for op in ["+", "-", "*", "/", "^", "calculate", "sum", "multiply", "product"]))
 
         # Check for Sentiment/Tone analysis needs
         sentiment_keywords = ["sentiment", "analyze", "tone", "emotion", "feeling", "review"]
@@ -130,7 +224,7 @@ class ReActAgent:
 
         # Decision 1: Do we need calculation?
         if has_math and not math_done:
-            expr = math_match.group(1).strip() if math_match else goal
+            expr = math_match.group(1).strip() if math_match else normalized_goal
             # Clean non-math words
             expr_clean = re.sub(r"[a-zA-Z]", "", expr).strip()
             return (
@@ -184,16 +278,62 @@ class ReActAgent:
             )
             return thought, None, None, True
 
+        # Check for conversational queries, greetings, or direct speech requests
+        clean_goal = goal.strip()
+        lower_goal = clean_goal.lower()
+
+        # Greetings
+        if any(lower_goal == g or lower_goal.startswith(f"{g} ") or lower_goal.endswith(f" {g}") for g in ["hello", "hi", "hey", "greetings", "good morning", "good evening", "say hello"]):
+            return (
+                "Hello! I am your Genesis ReAct AI Agent. I can assist you with running PyTorch model training, classifying sentiment, calculating math expressions, querying domain knowledge, or checking the current date and time. How can I help you today?",
+                None,
+                None,
+                True,
+            )
+
+        # Farewells
+        if any(lower_goal == b or lower_goal.startswith(f"{b} ") for b in ["bye", "goodbye", "say bye", "exit", "quit"]):
+            return (
+                "Goodbye! Feel free to return anytime to test models or run autonomous agents.",
+                None,
+                None,
+                True,
+            )
+
+        # "Say <text>" requests
+        if lower_goal.startswith("say "):
+            phrase = clean_goal[4:].strip()
+            return (
+                f"{phrase}",
+                None,
+                None,
+                True,
+            )
+
+        # Agent Identity / Help
+        if any(k in lower_goal for k in ["who are you", "what are you", "what can you do", "help"]):
+            tool_names = ", ".join([t.name for t in self.tools.list_tools()])
+            return (
+                f"I am {self.config.agent.name}, an autonomous AI agent built on the ReAct (Reasoning + Acting) paradigm. "
+                f"I can autonomously reason about tasks and execute tools ({tool_names}) or LLM endpoints to achieve goals.",
+                None,
+                None,
+                True,
+            )
+
         # Fallback if no specific trigger matched
         return (
             f"I have reviewed the goal '{goal}'. No external tool execution was required or the query was self-contained.",
             None,
             None,
-            True
+            True,
         )
 
     def _plan_with_gemini(self, goal: str, memory: AgentMemory, api_key: str):
-        import google.generativeai as genai
+        try:
+            import google.generativeai as genai  # type: ignore
+        except ImportError as e:
+            raise ImportError("Package `google-generativeai` is required. Run `pip install google-generativeai`.") from e
         genai.configure(api_key=api_key)
         model = genai.GenerativeModel("gemini-1.5-flash")
         tools_doc = self.tools.format_tool_descriptions()
@@ -218,7 +358,10 @@ Next Step:"""
         return self._parse_react_response(text)
 
     def _plan_with_openai(self, goal: str, memory: AgentMemory, api_key: str):
-        from openai import OpenAI
+        try:
+            from openai import OpenAI  # type: ignore
+        except ImportError as e:
+            raise ImportError("Package `openai` is required. Run `pip install openai`.") from e
         client = OpenAI(api_key=api_key)
         tools_doc = self.tools.format_tool_descriptions()
         trajectory = memory.get_trajectory_summary()
