@@ -1,7 +1,9 @@
 {
   "include": ["src", "tests", "main.py"],
   "extraPaths": [
+    ".",
     "C:\\Users\\Aasawari Bodke\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages",
     "c:\\Users\\Aasawari Bodke\\venv\\Lib\\site-packages"
-  ]
+  ],
+  "reportMissingTypeStubs": false
 }

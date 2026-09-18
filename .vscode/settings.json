@@ -1,6 +1,7 @@
 {
   "python.defaultInterpreterPath": "C:\\Users\\Aasawari Bodke\\AppData\\Local\\Programs\\Python\\Python311\\python.exe",
   "python.analysis.extraPaths": [
+    "${workspaceFolder}",
     "C:\\Users\\Aasawari Bodke\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages",
     "c:\\Users\\Aasawari Bodke\\venv\\Lib\\site-packages"
   ]

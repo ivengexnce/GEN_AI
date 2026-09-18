@@ -1,6 +1,6 @@
 """Training pipeline for the Neural Network model."""
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, random_split
@@ -51,7 +51,9 @@ class ModelTrainer:
         return train_loader, val_loader, vocab
 
     def train(
-        self, custom_texts: List[str] = None, custom_labels: List[int] = None
+        self,
+        custom_texts: Optional[List[str]] = None,
+        custom_labels: Optional[List[int]] = None,
     ) -> Dict[str, float]:
         """Execute the end-to-end training cycle."""
         if custom_texts is None or custom_labels is None:
@@ -75,12 +77,17 @@ class ModelTrainer:
             model.parameters(), lr=self.config.training.learning_rate
         )
 
+        train_count = len(train_loader.dataset) if hasattr(train_loader.dataset, "__len__") else len(train_loader)  # type: ignore
+        val_count = len(val_loader.dataset) if hasattr(val_loader.dataset, "__len__") else len(val_loader)  # type: ignore
+
         print(f"[*] Training on device: {self.device}")
         print(f"[*] Vocabulary size: {len(vocab)} tokens")
-        print(f"[*] Training samples: {len(train_loader.dataset)}, Validation: {len(val_loader.dataset)}")
+        print(f"[*] Training samples: {train_count}, Validation: {val_count}")
 
         epochs = self.config.training.epochs
         best_val_acc = 0.0
+        train_acc = 0.0
+        val_acc = 0.0
 
         for epoch in range(1, epochs + 1):
             # --- Training phase ---

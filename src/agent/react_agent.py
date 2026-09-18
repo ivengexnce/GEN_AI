@@ -354,7 +354,7 @@ Current Trajectory:
 
 Next Step:"""
         response = model.generate_content(prompt)
-        text = response.text.strip()
+        text = (response.text or "").strip()
         return self._parse_react_response(text)
 
     def _plan_with_openai(self, goal: str, memory: AgentMemory, api_key: str):
@@ -385,7 +385,8 @@ Next Step:"""
             messages=[{"role": "user", "content": prompt}],
             temperature=0.0
         )
-        text = res.choices[0].message.content.strip()
+        content = res.choices[0].message.content or ""
+        text = content.strip()
         return self._parse_react_response(text)
 
     def _parse_react_response(self, text: str) -> tuple[str, Optional[str], Optional[str], bool]:

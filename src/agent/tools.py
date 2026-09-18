@@ -15,7 +15,7 @@ class Tool(BaseModel):
     def execute(self, tool_input: str) -> str:
         """Execute the tool with error interception."""
         try:
-            return str(self.func(tool_input.strip()))
+            return self.func(tool_input.strip())
         except Exception as e:
             return f"Error executing tool '{self.name}': {str(e)}"
 

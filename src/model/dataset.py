@@ -71,9 +71,9 @@ class TextSentimentDataset(Dataset):
     def __len__(self) -> int:
         return len(self.texts)
 
-    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor]:
-        indices = encode_text(self.texts[idx], self.vocab, self.max_len)
-        return torch.tensor(indices, dtype=torch.long), torch.tensor(self.labels[idx], dtype=torch.long)
+    def __getitem__(self, index: int) -> Tuple[torch.Tensor, torch.Tensor]:
+        indices = encode_text(self.texts[index], self.vocab, self.max_len)
+        return torch.tensor(indices, dtype=torch.long), torch.tensor(self.labels[index], dtype=torch.long)
 
 
 def save_vocab(vocab: Dict[str, int], file_path: str) -> None:

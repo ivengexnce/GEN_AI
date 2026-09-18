@@ -1,7 +1,7 @@
 """Configuration schema and loader using Pydantic and PyYAML."""
 from pathlib import Path
 from typing import Optional
-import yaml
+import yaml  # type: ignore
 from pydantic import BaseModel, Field
 
 try:
