@@ -1,6 +1,6 @@
-# 🧠 How Genesis AI & Agent Workbench Works: Complete Technical Guide
+# 🧠 How NeuroNexus AI Works: Complete Technical Architecture & Operations Guide
 
-Welcome to the architectural blueprint and operational manual of the **Genesis AI Framework**. This document provides an in-depth breakdown of how the entire system works under the hood, how all recent fixes were engineered, and advanced industry techniques to make your models and agents **faster, more efficient, and hyper-accurate**.
+Welcome to the architectural blueprint and operational manual of **NeuroNexus AI** (Genesis Framework). This document provides an in-depth breakdown of how the entire system works under the hood, how all recent fixes were engineered, and advanced industry techniques to make your models and agents **faster, more efficient, and hyper-accurate**.
 
 ---
 
